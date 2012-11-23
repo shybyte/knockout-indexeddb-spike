@@ -14,7 +14,7 @@ function createTranslationDB(callback) {
         var db = event.target.result;
         try {
             db.deleteObjectStore(DB_NAME);
-        } catch(e) {
+        } catch (e) {
             //normal
         }
         var objectStore = db.createObjectStore(DB_NAME, { keyPath:"id" });
@@ -28,7 +28,12 @@ function createTranslationDB(callback) {
             return translation.lang + ':' + translation.surface.toLowerCase();
         }
 
-        function getTranslationsByLanguageAndBeginning(langId,surfaceBeginning, callback) {
+        function clear(callback) {
+            var objectStore = db.transaction(DB_NAME, "readwrite").objectStore(DB_NAME);
+            objectStore.clear().onsuccess = callback;
+        }
+
+        function getTranslationsByLanguageAndBeginning(langId, surfaceBeginning, callback) {
             surfaceBeginning = surfaceBeginning.toLowerCase();
             var objectStore = db.transaction(DB_NAME).objectStore(DB_NAME);
             var index = objectStore.index("searchKey");
@@ -39,14 +44,14 @@ function createTranslationDB(callback) {
                 if (cursor) {
                     var translation = cursor.value;
                     if (translation.searchKey.startsWith(searchKey)) {
-                        translations.push(translation);
+                        //translations.push(translation);
+                        callback(translation);
                         cursor.continue();
                     } else {
-                        callback(translations);
                     }
                 }
                 else {
-                    callback(translations);
+                    //callback(translations);
                 }
             };
         }
@@ -73,7 +78,8 @@ function createTranslationDB(callback) {
         callback({
             db:db,
             addTranslations:addTranslations,
-            getTranslationsByLanguageAndBeginning:getTranslationsByLanguageAndBeginning
+            getTranslationsByLanguageAndBeginning:getTranslationsByLanguageAndBeginning,
+            clear:clear
         });
     };
 
@@ -85,21 +91,21 @@ function main() {
         {
             id:1,
             surface:'dog',
-            lang: 'en',
+            lang:'en',
             translations:[
                 {
                     id:'100',
-                    lang: 'de',
+                    lang:'de',
                     surface:'Hund'
                 },
                 {
                     id:'101',
-                    lang: 'de',
+                    lang:'de',
                     surface:'Köter'
                 },
                 {
                     id:'102',
-                    lang: 'ind',
+                    lang:'ind',
                     surface:'anjing'
                 }
             ]
@@ -107,10 +113,10 @@ function main() {
         {
             id:2,
             surface:'duck',
-            lang: 'en',
+            lang:'en',
             translations:[
                 {
-                    lang: 'de',
+                    lang:'de',
                     surface:'Ente'
                 }
             ]
@@ -119,10 +125,10 @@ function main() {
         {
             id:3,
             surface:'tree',
-            lang: 'en',
+            lang:'en',
             translations:[
                 {
-                    lang: 'de',
+                    lang:'de',
                     surface:'Baum'
                 }
             ]
@@ -131,10 +137,10 @@ function main() {
         {
             id:4,
             surface:'makan',
-            lang: 'ind',
+            lang:'ind',
             translations:[
                 {
-                    lang: 'de',
+                    lang:'de',
                     surface:'essen'
                 }
             ]
@@ -142,22 +148,64 @@ function main() {
         {
             id:5,
             surface:'make',
-            lang: 'en',
+            lang:'en',
             translations:[
                 {
-                    lang: 'de',
+                    lang:'de',
                     surface:'machen'
                 }
             ]
         }
     ];
 
+    var languages = ['en', 'de', 'ind'];
+
+    function randomString(length) {
+        return Math.random().toString(36).substr(2, 16);
+    }
+
+    var dummyIdCounter = 10;
+
+
     createTranslationDB(function (tdb) {
-        tdb.addTranslations(dummyTranslations, function () {
-            tdb.getTranslationsByLanguageAndBeginning('en','d', function (t) {
-                log(t);
+
+        function addDummyTranslations(howMany) {
+            if (dummyIdCounter >= howMany) {
+                return;
+            }
+            log(dummyIdCounter);
+            var dummyTranslations = [];
+
+            for (var i = 0; i < 2000; i++) {
+                var dummyTranslations2 = [];
+                for (var i2 = 0; i2 < 5; i2++) {
+                    dummyTranslations2.push({
+                        id:i2,
+                        surface:randomString(),
+                        lang:languages[Math.floor(Math.random() * 3)]
+                    });
+                }
+                var lang = languages[Math.floor(Math.random() * 3)];
+                var s = randomString()
+                dummyTranslations.push({
+                    id:dummyIdCounter++,
+                    surface:s,
+                    lang:lang,
+                    translations:dummyTranslations2
+                });
+            }
+            tdb.addTranslations(dummyTranslations, function () {
+                addDummyTranslations(howMany);
+            })
+        }
+
+        if (false) {
+            tdb.clear(function () {
+                tdb.addTranslations(dummyTranslations, function () {
+                    addDummyTranslations(50000);
+                })
             });
-        });
+        }
 
         function ViewModel() {
             var self = this;
@@ -172,18 +220,24 @@ function main() {
             this.translations = ko.observableArray([]);
             ko.computed(function () {
                 var query = self.query().trim();
-                if (query.length==0) {
+                if (query.length < 1) {
                     self.translations([]);
                     return;
                 }
                 var langId = self.targetLanguage().id;
-                tdb.getTranslationsByLanguageAndBeginning(self.sourceLanguage().id,query, function (translations) {
+
+                function addTargetTranslations(translations) {
                     translations.forEach(function (translation) {
                         translation.targetTranslations = translation.translations.filter({lang:langId});
                     });
-                    self.translations(translations);
-                });
-            });
+                }
+
+                self.translations([]);
+                tdb.getTranslationsByLanguageAndBeginning(self.sourceLanguage().id, query, function (translation) {
+                    translation.targetTranslations = translation.translations.filter({lang:langId});
+                    self.translations.push(translation)
+                }, 100);
+            }).extend({ throttle:200 });
         }
 
         ko.applyBindings(new ViewModel());
