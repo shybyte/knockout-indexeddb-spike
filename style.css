@@ -1,0 +1,40 @@
+td {
+    vertical-align: top;
+}
+
+ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.page {
+    max-width: 40em;
+    margin: 0 auto;
+    font-size: 20px;
+}
+
+input {
+    width: 95%;
+    font-size: 20px;
+    padding: 0.1em;
+    border-radius: 0.2em;
+    border: 1px solid #aaa;
+}
+
+table {
+    width: 100%;
+}
+
+th {
+    text-align: left;
+    font-weight: normal;
+}
+
+td {
+    padding-bottom: 0.5em;
+}
+
+select {
+    font-size: 17px;
+}

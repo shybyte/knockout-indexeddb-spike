@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Knockout IndexedDB Spike</title>
+    <script type="text/javascript" src="libs/jquery/jquery.js"></script>
+    <script type="text/javascript" src="libs/sugar.min.js"></script>
+    <script type="text/javascript" src="libs/knockout-2.2.0.js"></script>
+    <script type="text/javascript" src="app.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="page">
+    <h1>Knockout IndexedDB Spike</h1>
+
+    <input type="search" autofocus="true" data-bind="value: query,valueUpdate:'afterkeydown'" placeholder="Enter Your Term to Translate..."/>
+
+
+    <table>
+        <thead>
+        <tr>
+            <th>
+                From: <select data-bind="options: languages, value: sourceLanguage, optionsText: 'name'"></select>
+            </th>
+            <th>
+                To: <select data-bind="options: languages, value: targetLanguage, optionsText: 'name'"></select>
+            </th>
+        </tr>
+        </thead>
+        <tbody data-bind="foreach: translations">
+        <tr>
+            <td>
+                <a href="#" data-bind="text: surface"></a>
+            </td>
+            <td>
+                <ul data-bind="foreach: targetTranslations">
+                    <li data-bind="text: surface"></li>
+                </ul>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+</html>
